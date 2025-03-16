@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-API_URL = "http://127.0.0.1:8000/v1/summarize"
+API_URL = "http://summarization:8000/v1/summarize"
 
 st.title("Text Summarization App 🚀")
 st.subheader("Nhập văn bản để tóm tắt:")
