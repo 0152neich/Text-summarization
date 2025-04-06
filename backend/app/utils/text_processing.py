@@ -8,7 +8,7 @@ import networkx as nx
 from config.configs import vietnamese_stopwords, model_path
 
 class TextProcessing:
-    def __init__(self, model_name: str = model_path):
+    def __init__(self):
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-mpnet-base-v2").to(self.device)
@@ -50,7 +50,12 @@ class TextProcessing:
             np.ndarray: similarity matrix
         """
         preprocessed_sentences = [self.process_sentences(sentence) for sentence in sentences]
-        embeddings = self.model.encode(preprocessed_sentences, convert_to_tensor=False)
+        embeddings = self.model.encode(
+            preprocessed_sentences,
+            batch_size=32,
+            convert_to_tensor=False,
+            show_progress_bar=False
+        )
         return cosine_similarity(embeddings)
 
     def textrank_summary(self, text: str, num_sentences: int = None) -> str:
@@ -72,7 +77,10 @@ class TextProcessing:
         graph = nx.from_numpy_array(similarity_matrix)
         scores = nx.pagerank(graph, max_iter=100, tol=1e-06)
 
-        ranked_sentences = sorted(((scores[i], s) for i, s in enumerate(sentences)), reverse=True)
-        summary_sentences = [s for score, s in ranked_sentences[:num_sentences]]
-        summary = [s for s in sentences if s in summary_sentences]
+        for i in range(len(sentences)):
+            scores[i] = scores[i] + (1.0 / (i + 1)) * 0.5
+
+        ranked_sentences = sorted(((scores[i], s, i) for i, s in enumerate(sentences)), reverse=True)
+        selected_indices = sorted([i for _, _, i in ranked_sentences[:num_sentences]])
+        summary = [sentences[i] for i in selected_indices]
         return ' '.join(summary)
